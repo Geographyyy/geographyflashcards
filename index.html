@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DSE 地理改錯練習</title>
+
+<style>
+  :root {
+    color-scheme: light;
+    --green: #176b58;
+    --text: #19372f;
+    --muted: #5c7069;
+    --border: #d7e4dd;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: #f2f6f3;
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Noto Sans TC", sans-serif;
+    line-height: 1.75;
+  }
+
+  main {
+    max-width: 800px;
+    margin: auto;
+    padding: 32px 18px 50px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(1.6rem, 5vw, 2.2rem);
+  }
+
+  .intro, .status, footer { color: var(--muted); }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  .field { flex: 1; min-width: 220px; }
+
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: bold;
+  }
+
+  select, button {
+    min-height: 48px;
+    border-radius: 12px;
+    font: inherit;
+  }
+
+  select {
+    width: 100%;
+    padding: 10px;
+    background: white;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  button {
+    padding: 10px 18px;
+    background: var(--green);
+    color: white;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  button.secondary {
+    background: white;
+    color: var(--green);
+    border-color: var(--border);
+  }
+
+  button:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+  }
+
+  :focus-visible {
+    outline: 3px solid #bd851c;
+    outline-offset: 3px;
+  }
+
+  .status {
+    font-size: .9rem;
+    min-height: 1.75em;
+  }
+
+  .status.error { color: #a42b2b; }
+
+  .card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: clamp(22px, 5vw, 36px);
+    box-shadow: 0 8px 30px #19372f0a;
+  }
+
+  .meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: .9rem;
+    color: var(--muted);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: #e7f3ed;
+    color: var(--green);
+    overflow-wrap: anywhere;
+  }
+
+  .hint {
+    color: var(--muted);
+    font-size: .95rem;
+    margin-top: 26px;
+  }
+
+  .question {
+    font-size: clamp(1.3rem, 4.5vw, 1.7rem);
+    font-weight: bold;
+    margin: 12px 0 28px;
+  }
+
+  .content {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .answer {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .answer h2 {
+    color: var(--green);
+    font-size: 1.05rem;
+    margin: 20px 0 6px;
+  }
+
+  .answer p { margin: 0; }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 26px;
+  }
+
+  .actions button { flex: 1; }
+
+  .message {
+    text-align: center;
+    padding: 30px 0;
+    color: var(--muted);
+  }
+
+  footer {
+    text-align: center;
+    font-size: .85rem;
+    margin-top: 24px;
+  }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+
+<body>
+<main>
+  <header>
+    <h1>🌏 DSE 地理改錯練習</h1>
+    <p class="intro">
+      先自行思考如何改寫，再查看訂正及原因。不用輸入答案，不設評分。
+    </p>
+  </header>
+
+  <section class="toolbar" aria-label="題庫設定">
+    <div class="field">
+      <label for="topicSelect">選擇課題</label>
+      <select id="topicSelect" disabled>
+        <option value="all">全部課題</option>
+      </select>
+    </div>
+    <button id="reloadButton" class="secondary">更新題庫</button>
+  </section>
+
+  <p id="status" class="status" role="status" aria-live="polite">
+    正在連接題庫……
+  </p>
+
+  <section class="card" aria-label="改錯練習卡片">
+    <div id="message" class="message" role="status">
+      <p id="messageText">正在載入題目……</p>
+      <button id="restartButton" hidden>重新洗牌，再練一次</button>
+    </div>
+
+    <div id="exercise" hidden>
+      <div class="meta">
+        <span id="topicBadge" class="badge"></span>
+        <span id="progress"></span>
+      </div>
+
+      <p class="hint">以下寫法有甚麼問題？請先嘗試自行訂正。</p>
+      <p id="wrong" class="question content"></p>
+
+      <button id="revealButton"
+              aria-expanded="false"
+              aria-controls="answer">
+        查看訂正
+      </button>
+
+      <section id="answer" class="answer" hidden>
+        <span id="errorType" class="badge"></span>
+
+        <h2>建議寫法</h2>
+        <p id="corrected" class="content"></p>
+
+        <h2>錯誤原因</h2>
+        <p id="reason" class="content"></p>
+      </section>
+
+      <div class="actions">
+        <button id="nextButton">下一題</button>
+        <button id="shuffleButton" class="secondary">重新洗牌</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    每輪不重複抽題 · 更新題庫會重新開始本輪練習
+  </footer>
+</main>
+
+<script>
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbwvoOQK7gQzA9TH04Xs3JslX8A5mnXRTo6ebmy1omYoIvtqpD1D1F0pX9D-ht6Iiuot/exec";
+
+const TOPICS = [
+  ["C1", "C1 機會與風險——板塊構造"],
+  ["C2", "C2 管理河流和海岸環境"],
+  ["C3", "C3 轉變中的工業區位"],
+  ["C4", "C4 建設可持續城市"],
+  ["C5", "C5 對抗饑荒"],
+  ["C6", "C6 消失中的綠色樹冠"],
+  ["C7", "C7 氣候變化"],
+  ["E1", "E1 動態的地球"],
+  ["考察", "考察"],
+  ["地圖閱讀", "地圖閱讀"]
+];
+
+const el = id => document.getElementById(id);
+
+let questions = [];
+let deck = [];
+let position = 0;
+let loading = false;
+
+function getTopicKey(value) {
+  const text = String(value || "").trim();
+
+  if (text === "考察" || text === "地圖閱讀") return text;
+
+  const match = text.match(/^(C[1-7]|E1)(?![A-Za-z0-9])/i);
+  return match ? match[1].toUpperCase() : null;
+}
+
+function prepareQuestions(rows) {
+  const seen = new Set();
+  const result = [];
+
+  for (const row of rows) {
+    if (!row || typeof row !== "object") continue;
+
+    const q = {};
+
+    for (const field of [
+      "topic", "errorType", "wrong", "corrected", "reason"
+    ]) {
+      q[field] = String(row[field] ?? "").trim();
+    }
+
+    q.key = getTopicKey(q.topic);
+
+    if (!q.key || !q.wrong || !q.corrected || !q.reason) continue;
+
+    if (
+      q.topic.includes("待分類") ||
+      /待確認|未見明顯錯誤/.test(q.errorType) ||
+      q.corrected.startsWith("待確認")
+    ) continue;
+
+    const signature = JSON.stringify([
+      q.key, q.wrong, q.corrected, q.reason
+    ]);
+
+    if (seen.has(signature)) continue;
+
+    seen.add(signature);
+    result.push(q);
+  }
+
+  return result;
+}
+
+// JSONP：跨網站讀取自己的 Apps Script 公開題庫
+function fetchQuestionBank() {
+  return new Promise((resolve, reject) => {
+    const callback =
+      "geoCallback_" + Date.now() + "_" +
+      Math.random().toString(36).slice(2);
+
+    const script = document.createElement("script");
+    let timer;
+    let settled = false;
+
+    function finish(error, data) {
+      if (settled) return;
+      settled = true;
+
+      clearTimeout(timer);
+      script.remove();
+
+      // 忽略可能延遲到達的回應
+      window[callback] = () => {};
+      setTimeout(() => {
+        delete window[callback];
+      }, 60000);
+
+      if (error) reject(error);
+      else resolve(data);
+    }
+
+    window[callback] = data => finish(null, data);
+
+    script.onerror = () => {
+      finish(new Error("連線失敗，請檢查網絡及 Apps Script 部署權限。"));
+    };
+
+    timer = setTimeout(() => {
+      finish(new Error("讀取逾時，請按「更新題庫」重試。"));
+    }, 30000);
+
+    const url = new URL(API_URL);
+    url.searchParams.set("callback", callback);
+    url.searchParams.set("_", Date.now());
+
+    script.src = url.toString();
+    document.head.appendChild(script);
+  });
+}
+
+function buildTopicMenu() {
+  const select = el("topicSelect");
+  const previous = select.value;
+  select.replaceChildren();
+
+  function add(value, label) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    select.appendChild(option);
+  }
+
+  add("all", `全部課題（${questions.length} 題）`);
+
+  for (const [key, label] of TOPICS) {
+    const count = questions.filter(q => q.key === key).length;
+    add(key, `${label}（${count} 題）`);
+  }
+
+  select.value =
+    previous === "all" || TOPICS.some(([key]) => key === previous)
+      ? previous
+      : "all";
+}
+
+function showMessage(text, canRestart = false) {
+  el("exercise").hidden = true;
+  el("message").hidden = false;
+  el("messageText").textContent = text;
+  el("restartButton").hidden = !canRestart;
+}
+
+function startRound() {
+  const selected = el("topicSelect").value;
+
+  deck = questions.filter(q =>
+    selected === "all" || q.key === selected
+  );
+
+  // 洗牌後依序出題，每輪不重複
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+
+  position = 0;
+  showQuestion();
+}
+
+function showQuestion() {
+  el("answer").hidden = true;
+  el("revealButton").textContent = "查看訂正";
+  el("revealButton").setAttribute("aria-expanded", "false");
+
+  if (!deck.length) {
+    showMessage("此課題暫未有可用題目，請選擇其他課題。");
+    return;
+  }
+
+  el("message").hidden = true;
+  el("exercise").hidden = false;
+
+  const q = deck[position];
+
+  // 題庫內容以純文字顯示，不當作 HTML 執行
+  el("topicBadge").textContent = q.topic;
+  el("progress").textContent =
+    `本輪第 ${position + 1}／${deck.length} 題`;
+
+  el("wrong").textContent = q.wrong;
+  el("errorType").textContent = q.errorType;
+  el("errorType").hidden = !q.errorType;
+  el("corrected").textContent = q.corrected;
+  el("reason").textContent = q.reason;
+
+  el("nextButton").textContent =
+    position === deck.length - 1 ? "完成本輪" : "下一題";
+}
+
+async function loadQuestions() {
+  if (loading) return;
+  loading = true;
+
+  el("reloadButton").disabled = true;
+  el("topicSelect").disabled = true;
+  el("status").classList.remove("error");
+  el("status").textContent = "正在讀取 Google Sheets 題庫……";
+  showMessage("正在載入，請稍候……");
+
+  try {
+    const data = await fetchQuestionBank();
+
+    if (!data || data.ok !== true) {
+      throw new Error(data?.error || "題庫回傳格式不正確。");
+    }
+
+    if (!Array.isArray(data.questions)) {
+      throw new Error("回應中找不到題目資料。");
+    }
+
+    questions = prepareQuestions(data.questions);
+    buildTopicMenu();
+    el("topicSelect").disabled = false;
+
+    const time = new Date().toLocaleTimeString("zh-HK", {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+    el("status").textContent =
+      `已載入 ${questions.length} 題 · 最近讀取：${time}`;
+
+    startRound();
+  } catch (error) {
+    el("status").classList.add("error");
+    el("status").textContent = error.message;
+
+    showMessage(
+      "無法載入題庫。請確認 Apps Script 設為任何人可存取，並已部署支援 callback 的程式版本。"
+    );
+  } finally {
+    loading = false;
+    el("reloadButton").disabled = false;
+  }
+}
+
+el("revealButton").addEventListener("click", () => {
+  const show = el("answer").hidden;
+  el("answer").hidden = !show;
+  el("revealButton").textContent = show ? "隱藏訂正" : "查看訂正";
+  el("revealButton").setAttribute("aria-expanded", String(show));
+});
+
+el("nextButton").addEventListener("click", () => {
+  if (position < deck.length - 1) {
+    position++;
+    showQuestion();
+  } else {
+    showMessage(
+      `本輪 ${deck.length} 題已翻閱完成。可重新洗牌，或選擇其他課題。`,
+      true
+    );
+  }
+});
+
+el("shuffleButton").addEventListener("click", startRound);
+el("restartButton").addEventListener("click", startRound);
+el("topicSelect").addEventListener("change", startRound);
+el("reloadButton").addEventListener("click", loadQuestions);
+
+loadQuestions();
+</script>
+</body>
+</html>
